@@ -66,8 +66,9 @@ module.exports = (_env, argv) => {
       ],
     },
     output: {
-      chunkFilename: isProduction ? "scripts/chunk-[contenthash].js" : "scripts/chunk-[id].js",
-      filename: isProduction ? "scripts/[name]-[contenthash].js" : "scripts/[name].js",
+      // ハッシュを付けず固定ファイル名に戻す（index.htmlの直書きと揃える）
+      chunkFilename: "scripts/chunk-[id].js",
+      filename: "scripts/[name].js",
       path: DIST_PATH,
       publicPath: "auto",
       clean: true,
@@ -97,15 +98,8 @@ module.exports = (_env, argv) => {
         ],
       }),
       new HtmlWebpackPlugin({
-        inject: "body",
-        scriptLoading: "defer",
+        inject: false, // index.html の直書きを利用
         template: path.resolve(SRC_PATH, "./index.html"),
-        minify:
-          isProduction && {
-            collapseWhitespace: true,
-            removeComments: true,
-            keepClosingSlash: true,
-          },
       }),
     ],
     resolve: {
@@ -140,25 +134,13 @@ module.exports = (_env, argv) => {
         url: false,
       },
     },
-    optimization: isProduction
-      ? {
-          splitChunks: {
-            chunks: "all",
-            minSize: 20_000,
-            maxAsyncRequests: 30,
-            maxInitialRequests: 30,
-          },
-          runtimeChunk: "single",
-          usedExports: true,
-        }
-      : {
-          minimize: false,
-          splitChunks: false,
-          concatenateModules: false,
-          usedExports: false,
-          providedExports: false,
-          sideEffects: false,
-        },
+    optimization: {
+      // 大きな vendor チャンクを作らず、固定ファイル名で一括出力
+      splitChunks: false,
+      runtimeChunk: false,
+      minimize: isProduction,
+      usedExports: isProduction,
+    },
     cache: isProduction
       ? {
           type: "filesystem",
